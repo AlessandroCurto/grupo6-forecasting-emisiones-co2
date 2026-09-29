@@ -31,7 +31,7 @@ entrene modelos que pronostiquen las emisiones totales de CO2 de cada país.
 
 ```
 .
-├── main.py                        # ÚNICO archivo de código (fases 1, 2 y 3)
+├── main.py                        # Único archivo de código (fases 1, 2 y 3)
 ├── README.md                      # este documento
 ├── requirements.txt               # librerías necesarias
 ├── data/
@@ -49,7 +49,7 @@ entrene modelos que pronostiquen las emisiones totales de CO2 de cada país.
     ├── 02_estadisticas_descriptivas.csv
     ├── 03_data_preparation.md
     ├── 03_outliers_detectados.csv
-    └── figures/                   # fig01 … fig09 (PNG)
+    └── figures/                  
 ```
 
 Todos los archivos de `data/` y `reports/` **los genera `main.py`**. Se incluyen en el
