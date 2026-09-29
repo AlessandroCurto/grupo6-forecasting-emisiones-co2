@@ -6,11 +6,6 @@
 **Profesor:** Dr. Ing. Hilario Aradiel Castañeda  
 **Metodología:** CRISP-ML(Q) ([Studer et al., 2021](https://doi.org/10.48550/arXiv.2003.05155))
 
-> ⚠️ **Alcance:** este proyecto cubre únicamente las tres primeras fases de CRISP-ML(Q):
-> *Business Understanding*, *Data Understanding* y *Data Preparation*.
-> **No incluye modelado.** No se entrena ni se ejecuta ningún algoritmo de Machine Learning.
-
----
 
 ## 1. Descripción del proyecto
 
