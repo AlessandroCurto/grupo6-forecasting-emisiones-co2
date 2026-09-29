@@ -157,7 +157,7 @@ git clone https://github.com/AlessandroCurto/grupo6-forecasting-emisiones-co2.gi
 cd grupo6-forecasting-emisiones-co2
 ```
 
-### Paso 2: Crear y activar un entorno virtual (recomendado)
+### Paso 2: Crear y activar un entorno virtual
 
 ```bash
 python -m venv .venv
