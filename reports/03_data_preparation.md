@@ -17,7 +17,7 @@ Dataset final: `data/processed/co2_dataset_preparado.csv` - **5,888 filas x 58 c
 | Limpieza | Países eliminados por faltantes irrecuperables: AFG, CYM, DJI, ERI, FRO, GIB, NCL, PRK, TCA, VGB, YEM |
 | Limpieza | Países eliminados por huecos temporales: ninguno |
 | Outliers | Saltos anómalos detectados (|z robusto| > 3.5 y magnitud relevante): 986 -> {'cambio estructural (conservado)': 811, 'choque conocido (conservado)': 96, 'pico aislado (corregido)': 79} |
-| Transformación | Variables creadas: log, crecimientos, 3 rezagos del objetivo, rezagos t-1 de covariables, tendencia y dummies [2009, 2020] |
+| Transformación | Variables creadas: log, crecimientos, 3 rezagos del objetivo, rezagos t-1 de covariables, tendencia e indicadoras de choque [2009, 2020] |
 | Transformación | Filas iniciales sin historia suficiente eliminadas: 552 |
 | Integración | Unión con metadatos de países (región, ingreso); 11 variables one-hot creadas |
 | Partición | Partición temporal sugerida para el modelado: {'entrenamiento': 4416, 'validacion': 736, 'prueba': 736} |
@@ -91,41 +91,41 @@ Detalle completo en `reports/03_outliers_detectados.csv`.
 | log_poblacion | float64 | Logaritmo natural de Población total (habitantes) |
 | crec_pib_pct | float64 | Crecimiento anual del PIB (%) |
 | crec_poblacion_pct | float64 | Crecimiento anual de la población (%) |
-| log_co2_lag1 | float64 | log_co2 rezagado 1 año(s) |
-| log_co2_lag2 | float64 | log_co2 rezagado 2 año(s) |
-| log_co2_lag3 | float64 | log_co2 rezagado 3 año(s) |
-| crec_co2_lag1 | float64 | Variación anual del CO2 en t-1 (%, log) |
-| log_co2_media3_lag1 | float64 | Media móvil de 3 años de log_co2 (t-1, t-2, t-3) |
-| intensidad_carbono_lag1 | float64 | Intensidad de carbono en t-1 (kg CO2 / US$ de PIB) |
-| log_pib_lag1 | float64 | Logaritmo de PIB a precios constantes de 2015 (US$) en t-1 |
-| log_pib_pc_lag1 | float64 | Logaritmo de PIB per cápita a precios constantes de 2015 (US$) en t-1 |
-| log_poblacion_lag1 | float64 | Logaritmo de Población total (habitantes) en t-1 |
-| urbano_pct_lag1 | float64 | Población urbana (% del total) en t-1 |
-| renovable_pct_lag1 | float64 | Consumo de energía renovable (% del consumo final) en t-1 |
-| electricidad_pct_lag1 | float64 | Acceso a la electricidad (% de la población) en t-1 |
-| industria_pct_lag1 | float64 | Industria incl. construcción, valor agregado (% del PIB) en t-1 |
-| carbon_elec_pct_lag1 | float64 | Electricidad producida con carbón (% del total) en t-1 |
+| log_co2_rezago1 | float64 | log_co2 rezagado 1 año(s) |
+| log_co2_rezago2 | float64 | log_co2 rezagado 2 año(s) |
+| log_co2_rezago3 | float64 | log_co2 rezagado 3 año(s) |
+| crec_co2_rezago1 | float64 | Variación anual del CO2 en t-1 (%, log) |
+| log_co2_media3_rezago1 | float64 | Media móvil de 3 años de log_co2 (t-1, t-2, t-3) |
+| intensidad_carbono_rezago1 | float64 | Intensidad de carbono en t-1 (kg CO2 / US$ de PIB) |
+| log_pib_rezago1 | float64 | Logaritmo de PIB a precios constantes de 2015 (US$) en t-1 |
+| log_pib_pc_rezago1 | float64 | Logaritmo de PIB per cápita a precios constantes de 2015 (US$) en t-1 |
+| log_poblacion_rezago1 | float64 | Logaritmo de Población total (habitantes) en t-1 |
+| urbano_pct_rezago1 | float64 | Población urbana (% del total) en t-1 |
+| renovable_pct_rezago1 | float64 | Consumo de energía renovable (% del consumo final) en t-1 |
+| electricidad_pct_rezago1 | float64 | Acceso a la electricidad (% de la población) en t-1 |
+| industria_pct_rezago1 | float64 | Industria incl. construcción, valor agregado (% del PIB) en t-1 |
+| carbon_elec_pct_rezago1 | float64 | Electricidad producida con carbón (% del total) en t-1 |
 | tendencia | int64 | Años desde 1990 |
-| dummy_2009 | int64 | 1 si el año es 2009 (Crisis financiera global) |
-| dummy_2020 | int64 | 1 si el año es 2020 (Pandemia COVID-19) |
-| reg_east_asia_pacific | int64 | One-hot de región: east_asia_pacific |
-| reg_europe_central_asia | int64 | One-hot de región: europe_central_asia |
-| reg_latin_america_caribbean | int64 | One-hot de región: latin_america_caribbean |
-| reg_middle_east_north_africa_afghanistan_pakistan | int64 | One-hot de región: middle_east_north_africa_afghanistan_pakistan |
-| reg_north_america | int64 | One-hot de región: north_america |
-| reg_south_asia | int64 | One-hot de región: south_asia |
-| reg_sub_saharan_africa | int64 | One-hot de región: sub_saharan_africa |
-| ing_high_income | int64 | One-hot de nivel de ingreso: high_income |
-| ing_low_income | int64 | One-hot de nivel de ingreso: low_income |
-| ing_lower_middle_income | int64 | One-hot de nivel de ingreso: lower_middle_income |
-| ing_upper_middle_income | int64 | One-hot de nivel de ingreso: upper_middle_income |
-| flag_imp_co2_mt | int64 | 1 si co2_mt fue imputado en la limpieza |
-| flag_imp_pib | int64 | 1 si pib fue imputado en la limpieza |
-| flag_imp_pib_pc | int64 | 1 si pib_pc fue imputado en la limpieza |
-| flag_imp_poblacion | int64 | 1 si poblacion fue imputado en la limpieza |
-| flag_imp_urbano_pct | int64 | 1 si urbano_pct fue imputado en la limpieza |
-| flag_imp_renovable_pct | int64 | 1 si renovable_pct fue imputado en la limpieza |
-| flag_imp_electricidad_pct | int64 | 1 si electricidad_pct fue imputado en la limpieza |
-| flag_imp_industria_pct | int64 | 1 si industria_pct fue imputado en la limpieza |
-| flag_imp_carbon_elec_pct | int64 | 1 si carbon_elec_pct fue imputado en la limpieza |
+| choque_2009 | int64 | 1 si el año es 2009 (Crisis financiera global) |
+| choque_2020 | int64 | 1 si el año es 2020 (Pandemia COVID-19) |
+| reg_africa_subsahariana | int64 | 1 si el país pertenece a la región África Subsahariana |
+| reg_america_latina_caribe | int64 | 1 si el país pertenece a la región América Latina y el Caribe |
+| reg_america_norte | int64 | 1 si el país pertenece a la región América del Norte |
+| reg_asia_oriental_pacifico | int64 | 1 si el país pertenece a la región Asia Oriental y Pacífico |
+| reg_asia_sur | int64 | 1 si el país pertenece a la región Asia del Sur |
+| reg_europa_asia_central | int64 | 1 si el país pertenece a la región Europa y Asia Central |
+| reg_medio_oriente_norte_africa | int64 | 1 si el país pertenece a la región Medio Oriente, Norte de África, Afganistán y Pakistán |
+| ing_alto | int64 | 1 si el nivel de ingreso del país es ingreso alto |
+| ing_bajo | int64 | 1 si el nivel de ingreso del país es ingreso bajo |
+| ing_medio_alto | int64 | 1 si el nivel de ingreso del país es ingreso medio alto |
+| ing_medio_bajo | int64 | 1 si el nivel de ingreso del país es ingreso medio bajo |
+| imputado_co2_mt | int64 | 1 si co2_mt fue imputado en la limpieza |
+| imputado_pib | int64 | 1 si pib fue imputado en la limpieza |
+| imputado_pib_pc | int64 | 1 si pib_pc fue imputado en la limpieza |
+| imputado_poblacion | int64 | 1 si poblacion fue imputado en la limpieza |
+| imputado_urbano_pct | int64 | 1 si urbano_pct fue imputado en la limpieza |
+| imputado_renovable_pct | int64 | 1 si renovable_pct fue imputado en la limpieza |
+| imputado_electricidad_pct | int64 | 1 si electricidad_pct fue imputado en la limpieza |
+| imputado_industria_pct | int64 | 1 si industria_pct fue imputado en la limpieza |
+| imputado_carbon_elec_pct | int64 | 1 si carbon_elec_pct fue imputado en la limpieza |
 | particion | str | Partición temporal sugerida (entrenamiento/validacion/prueba) |

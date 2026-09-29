@@ -124,10 +124,10 @@ Función `fase3_data_preparation()` → `reports/03_data_preparation.md`
 | Paso | Función | Qué se hace |
 |---|---|---|
 | 3.1 Selección | `seleccionar_datos` | Se descartan `energia_pc` y `fosil_pct` (> 30 % de faltantes) y `co2_pc` (se deriva del objetivo, habría **fuga de información**). Se conservan los 195 países con CO2 válido en ≥ 90 % de los años. |
-| 3.2 Limpieza | `limpiar_datos` | Se eliminan duplicados, los valores fuera de rango pasan a faltantes y el PIB se reconstruye con la identidad PIB = PIB pc × población. Se imputa por país: interpolación lineal (en logaritmos para niveles) en huecos de hasta 5 años, relleno de extremos de hasta 3 años y, al final, la mediana regional del año. **El objetivo nunca se extrapola.** Se eliminan 11 países con faltantes irrecuperables (p. ej., AFG, PRK, YEM, sin PIB reciente). Cada imputación queda marcada en `flag_imp_<variable>`. |
-| 3.3 Outliers | `tratar_outliers` | Z-score robusto (mediana/MAD) de la variación anual por país y variable. Se detectaron 986 saltos: **79 picos aislados** (suben y vuelven a bajar) se suavizan, **96 choques conocidos** (2009 y 2020) se conservan y se marcan con dummies, y **811 cambios estructurales** se conservan. Los grandes emisores (China, EE. UU.) no se eliminan: son valores reales. |
-| 3.4 Transformación | `transformar_datos` | Logaritmos de CO2, PIB y población. Crecimiento anual del PIB y la población. **Rezagos** del objetivo (t-1, t-2, t-3), su variación y media móvil rezagadas. Intensidad de carbono (t-1). Rezagos t-1 de las covariables. Tendencia y dummies de 2009 y 2020. Toda variable derivada del CO2 usa solo años anteriores. |
-| 3.5 Integración | `integrar_datos` | Unión con la tabla de metadatos (región y nivel de ingreso) y codificación one-hot (11 columnas). |
+| 3.2 Limpieza | `limpiar_datos` | Se eliminan duplicados, los valores fuera de rango pasan a faltantes y el PIB se reconstruye con la identidad PIB = PIB pc × población. Se imputa por país: interpolación lineal (en logaritmos para niveles) en huecos de hasta 5 años, relleno de extremos de hasta 3 años y, al final, la mediana regional del año. **El objetivo nunca se extrapola.** Se eliminan 11 países con faltantes irrecuperables (p. ej., AFG, PRK, YEM, sin PIB reciente). Cada imputación queda marcada en `imputado_<variable>` (1 = imputado). |
+| 3.3 Outliers | `tratar_outliers` | Z-score robusto (mediana/MAD) de la variación anual por país y variable. Se detectaron 986 saltos: **79 picos aislados** (suben y vuelven a bajar) se suavizan, **96 choques conocidos** (2009 y 2020) se conservan y se marcan con `choque_2009` y `choque_2020`, y **811 cambios estructurales** se conservan. Los grandes emisores (China, EE. UU.) no se eliminan: son valores reales. |
+| 3.4 Transformación | `transformar_datos` | Logaritmos de CO2, PIB y población. Crecimiento anual del PIB y la población. **Rezagos** del objetivo (`log_co2_rezago1` a `log_co2_rezago3`), su variación y media móvil rezagadas. Intensidad de carbono (t-1). Rezagos t-1 de las covariables (sufijo `_rezago1`). `tendencia` e indicadoras `choque_2009` y `choque_2020`. Toda variable derivada del CO2 usa solo años anteriores. |
+| 3.5 Integración | `integrar_datos` | Unión con la tabla de metadatos (región y nivel de ingreso, traducidos al español) y variables indicadoras 1/0: 7 de región (`reg_america_latina_caribe`, `reg_europa_asia_central`, …) y 4 de ingreso (`ing_alto`, `ing_medio_alto`, `ing_medio_bajo`, `ing_bajo`). |
 | 3.6 Partición | `particionar_temporalmente` | Se etiqueta una partición **temporal** para la fase siguiente (sin entrenar nada): entrenamiento ≤ 2016 (4 416 filas), validación 2017-2020 (736) y prueba 2021-2024 (736). |
 | 3.7 Validación QA | `validar_dataset_final` | Se verifican 9 controles: 0 nulos, 0 duplicados, ≥ 150 países, porcentajes en [0, 100], objetivo > 0, sin infinitos, años consecutivos, sin fuga de información y particiones no vacías. **Resultado: 9/9 cumplidos.** |
 
@@ -213,6 +213,9 @@ Dimensiones                : 5,888 filas x 58 columnas
 Controles de calidad       : 9/9 cumplidos
 ```
 
+El programa termina con código de salida 0 si los 9 controles se cumplen y con código 1
+si alguno falla; así se comprueba que la ejecución fue correcta.
+
 Luego se pueden revisar:
 1. `reports/01_business_understanding.md`: objetivos y criterios de éxito.
 2. `reports/02_data_understanding.md`: exploración y reporte de calidad.
@@ -245,7 +248,7 @@ Luego se pueden revisar:
 
 - En los últimos años, algunas covariables se completan con el último valor disponible
   (máximo 3 años). Por ejemplo, `renovable_pct` para 2023-2024 y `carbon_elec_pct` para
-  2022-2024. Están marcadas en las columnas `flag_imp_*`.
+  2022-2024. Están marcadas en las columnas `imputado_*`.
 - Los datos del Banco Mundial se revisan con frecuencia. Con `--actualizar` los resultados
   pueden variar ligeramente.
 - Se excluyen 33 de los 217 países por falta de datos válidos (territorios pequeños y

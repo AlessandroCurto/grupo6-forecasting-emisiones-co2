@@ -37,7 +37,7 @@ Flujo de ejecución (ver función main() al final del archivo):
           ├── seleccionar_datos()         -> países, años y variables
           ├── limpiar_datos()             -> rangos inválidos, duplicados, imputación
           ├── tratar_outliers()           -> detección robusta y corrección de picos
-          ├── transformar_datos()         -> logaritmos, tasas, rezagos (lags), dummies
+          ├── transformar_datos()         -> logaritmos, tasas, rezagos, indicadoras de choque
           ├── integrar_datos()            -> unión con metadatos (región, ingreso)
           ├── particionar_temporalmente() -> etiqueta train/valid/test (sin entrenar)
           └── validar_dataset_final()     -> controles de calidad (QA) finales
@@ -129,6 +129,26 @@ MIN_CO2_PC_PLAUSIBLE = 0.01        # t CO2/hab; los países más pobres emiten ~
                                    # indican que el país no se mide por separado (p. ej., territorios)
 ANIOS_SHOCK = {2009: "Crisis financiera global", 2020: "Pandemia COVID-19"}
 N_REZAGOS_OBJETIVO = 3             # rezagos de CO2 (t-1, t-2, t-3) como variables explicativas
+
+# Traducción de las categorías del Banco Mundial (la API las entrega en inglés).
+# nombre original -> (nombre en español, sufijo de la columna indicadora)
+REGIONES_ES = {
+    "East Asia & Pacific": ("Asia Oriental y Pacífico", "asia_oriental_pacifico"),
+    "Europe & Central Asia": ("Europa y Asia Central", "europa_asia_central"),
+    "Latin America & Caribbean": ("América Latina y el Caribe", "america_latina_caribe"),
+    "Middle East, North Africa, Afghanistan & Pakistan":
+        ("Medio Oriente, Norte de África, Afganistán y Pakistán", "medio_oriente_norte_africa"),
+    "North America": ("América del Norte", "america_norte"),
+    "South Asia": ("Asia del Sur", "asia_sur"),
+    "Sub-Saharan Africa": ("África Subsahariana", "africa_subsahariana"),
+}
+INGRESOS_ES = {
+    "High income": ("Ingreso alto", "alto"),
+    "Upper middle income": ("Ingreso medio alto", "medio_alto"),
+    "Lower middle income": ("Ingreso medio bajo", "medio_bajo"),
+    "Low income": ("Ingreso bajo", "bajo"),
+    "Not classified": ("Sin clasificar", "sin_clasificar"),
+}
 
 # Partición temporal sugerida para la fase de modelado (aquí solo se etiqueta)
 PARTICION = {"entrenamiento": (None, 2016), "validacion": (2017, 2020), "prueba": (2021, ANIO_FIN)}
@@ -389,6 +409,18 @@ def descargar_metadatos_paises(sesion: requests.Session) -> pd.DataFrame:
     } for r in registros])
 
 
+def traducir_metadatos(meta: pd.DataFrame) -> pd.DataFrame:
+    """
+    Traduce al español la región y el nivel de ingreso de cada país. Los
+    agregados (región 'Aggregates') no se traducen porque se excluyen del panel.
+    Los datos crudos de data/raw se conservan tal como los entrega la API.
+    """
+    meta = meta.copy()
+    meta["region"] = meta["region"].map(lambda r: REGIONES_ES.get(r, (r, None))[0])
+    meta["nivel_ingreso"] = meta["nivel_ingreso"].map(lambda n: INGRESOS_ES.get(n, (n, None))[0])
+    return meta
+
+
 def recolectar_datos(actualizar: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Recolección inicial de datos. Descarga los indicadores y metadatos desde la
@@ -640,10 +672,20 @@ def verificar_factibilidad(panel: pd.DataFrame, requisitos: dict) -> list[dict]:
 
 
 def fase2_data_understanding(actualizar: bool, pais_ref: str, requisitos: dict) -> dict:
-    """Orquesta la fase 2 y guarda el reporte reports/02_data_understanding.md."""
+    """
+    Orquesta la fase 2: recolección, exploración y evaluación de calidad.
+
+    Resultado esperado:
+        - data/raw/ con los datos crudos de la API (111 300 registros, 12 indicadores)
+        - Panel de 7 595 filas país-año (217 países x 35 años)
+        - reports/02_data_understanding.md, 02_calidad_datos.csv,
+          02_estadisticas_descriptivas.csv y figuras fig01 a fig07
+        - Factibilidad confirmada frente a los requisitos de la fase 1
+    """
     titulo("FASE 2 - DATA UNDERSTANDING")
     log.info("2.1 Recolección inicial de datos")
     datos, meta = recolectar_datos(actualizar)
+    meta = traducir_metadatos(meta)
     panel, n_dup = construir_panel(datos, meta)
     log.info("Panel crudo: %d filas (país-año), %d países, %d variables",
              len(panel), panel["iso3"].nunique(), len(INDICADORES))
@@ -725,7 +767,7 @@ def limpiar_datos(df: pd.DataFrame, meta: pd.DataFrame, bitacora: list) -> pd.Da
          internos: nunca se extrapolan emisiones.
       5. Imputa los faltantes restantes de covariables con la mediana regional del año.
       6. Elimina filas sin objetivo y países cuya serie quedó con huecos.
-    Cada valor imputado queda marcado en una columna flag_imp_<variable>.
+    Cada valor imputado queda marcado en una columna imputado_<variable> (1 = imputado).
     """
     variables = [c for c in df.columns if c not in ("iso3", "anio")]
     antes = df[variables].isna().sum()
@@ -741,7 +783,7 @@ def limpiar_datos(df: pd.DataFrame, meta: pd.DataFrame, bitacora: list) -> pd.Da
 
     # Banderas de imputación (se calculan antes de rellenar)
     for var in variables:
-        df[f"flag_imp_{var}"] = df[var].isna().astype(int)
+        df[f"imputado_{var}"] = df[var].isna().astype(int)
 
     # Identidades contables para recuperar niveles faltantes
     if {"pib", "pib_pc", "poblacion"} <= set(variables):
@@ -816,15 +858,15 @@ def tratar_outliers(df: pd.DataFrame, bitacora: list) -> tuple[pd.DataFrame, pd.
         errores de registro o eventos transitorios de un solo año (p. ej., un
         conflicto armado) que no representan la tendencia a pronosticar; se
         suavizan por interpolación. El valor original queda en
-        reports/03_outliers_detectados.csv y marcado en flag_imp_<variable>.
+        reports/03_outliers_detectados.csv y marcado en imputado_<variable>.
       - Choques conocidos (2009, 2020): son reales, se conservan y se marcan
-        con variables dummy para que el modelo los reconozca.
+        con las variables indicadoras choque_2009 y choque_2020.
       - Cambios de nivel persistentes: son estructurales, se conservan.
     No se eliminan los grandes emisores (China, EE. UU.): son outliers
     transversales legítimos, no errores.
     """
     df = df.sort_values(["iso3", "anio"]).reset_index(drop=True)
-    variables = [c for c in df.columns if c not in ("iso3", "anio") and not c.startswith("flag_")]
+    variables = [c for c in df.columns if c not in ("iso3", "anio") and not c.startswith("imputado_")]
     registros = []
     for var in variables:
         es_nivel = TIPO_VAR[var] == "nivel"
@@ -851,7 +893,7 @@ def tratar_outliers(df: pd.DataFrame, bitacora: list) -> tuple[pd.DataFrame, pd.
             interp = (np.log(df[var]) if es_nivel else df[var]).groupby(df["iso3"]).transform(
                 lambda s: s.interpolate(limit_area="inside").ffill().bfill())
             df[var] = np.exp(interp) if es_nivel else interp
-            df.loc[pico, f"flag_imp_{var}"] = 1
+            df.loc[pico, f"imputado_{var}"] = 1
 
     outliers = pd.DataFrame(registros, columns=["iso3", "anio", "variable", "valor_original", "z_robusto", "tipo"])
     outliers.to_csv(DIR_REPORTES / "03_outliers_detectados.csv", index=False)
@@ -876,10 +918,11 @@ def transformar_datos(df: pd.DataFrame, bitacora: list) -> pd.DataFrame:
     Construye las variables que usará el modelo de forecasting:
       - Logaritmos de las variables de nivel (reducen asimetría y heterocedasticidad).
       - Tasas de crecimiento anual del PIB y la población.
-      - Rezagos (lags) del objetivo: log_co2 en t-1, t-2, t-3, su variación
-        anual rezagada y la media móvil de 3 años rezagada.
-      - Rezagos (t-1) de las covariables y de la intensidad de carbono.
-      - Tendencia (índice de año) y dummies de choques conocidos.
+      - Rezagos del objetivo: log_co2 en t-1, t-2, t-3 (log_co2_rezago1..3),
+        su variación anual rezagada y la media móvil de 3 años rezagada.
+      - Rezagos (t-1) de las covariables y de la intensidad de carbono (sufijo _rezago1).
+      - Tendencia (años desde 1990) e indicadoras de choques conocidos
+        (choque_2009, choque_2020).
     Todas las variables derivadas del objetivo usan SOLO información de años
     anteriores (shift >= 1) para evitar fuga de información.
     El escalado (estandarización) NO se hace aquí: debe ajustarse solo con el
@@ -887,7 +930,7 @@ def transformar_datos(df: pd.DataFrame, bitacora: list) -> pd.DataFrame:
     """
     df = df.sort_values(["iso3", "anio"]).reset_index(drop=True)
     g = df.groupby("iso3")
-    covariables = [c for c in df.columns if c not in ("iso3", "anio", OBJETIVO) and not c.startswith("flag_")]
+    covariables = [c for c in df.columns if c not in ("iso3", "anio", OBJETIVO) and not c.startswith("imputado_")]
 
     # Objetivo transformado
     df["log_co2"] = np.log(df[OBJETIVO])
@@ -905,31 +948,31 @@ def transformar_datos(df: pd.DataFrame, bitacora: list) -> pd.DataFrame:
 
     # Rezagos del objetivo (información disponible al momento de pronosticar)
     for k in range(1, N_REZAGOS_OBJETIVO + 1):
-        df[f"log_co2_lag{k}"] = g["log_co2"].shift(k)
-    df["crec_co2_lag1"] = (df["log_co2_lag1"] - df["log_co2_lag2"]) * 100
-    df["log_co2_media3_lag1"] = g["log_co2"].transform(lambda s: s.shift(1).rolling(3).mean())
+        df[f"log_co2_rezago{k}"] = g["log_co2"].shift(k)
+    df["crec_co2_rezago1"] = (df["log_co2_rezago1"] - df["log_co2_rezago2"]) * 100
+    df["log_co2_media3_rezago1"] = g["log_co2"].transform(lambda s: s.shift(1).rolling(3).mean())
 
     # Intensidad de carbono (kg CO2 por US$ de PIB), solo rezagada
     if "pib" in df:
         intensidad = df[OBJETIVO] * 1e9 / df["pib"]
-        df["intensidad_carbono_lag1"] = intensidad.groupby(df["iso3"]).shift(1)
+        df["intensidad_carbono_rezago1"] = intensidad.groupby(df["iso3"]).shift(1)
 
     # Rezagos t-1 de las covariables
     for var in covariables:
         nombre = f"log_{var}" if TIPO_VAR[var] == "nivel" else var
-        df[f"{nombre}_lag1"] = df.groupby("iso3")[nombre].shift(1)
+        df[f"{nombre}_rezago1"] = df.groupby("iso3")[nombre].shift(1)
 
-    # Tendencia y choques conocidos
+    # Tendencia e indicadoras de choques conocidos (1 en el año del choque, 0 en el resto)
     df["tendencia"] = df["anio"] - ANIO_INICIO
     for anio, evento in ANIOS_SHOCK.items():
-        df[f"dummy_{anio}"] = (df["anio"] == anio).astype(int)
+        df[f"choque_{anio}"] = (df["anio"] == anio).astype(int)
 
     # Se eliminan las primeras filas de cada país (sin historia suficiente para los rezagos)
     filas_ini = len(df)
-    columnas_rezago = [c for c in df.columns if "lag" in c or c.startswith("crec_")]
+    columnas_rezago = [c for c in df.columns if "rezago" in c or c.startswith("crec_")]
     df = df.dropna(subset=columnas_rezago).reset_index(drop=True)
     bitacora.append(("Transformación", f"Variables creadas: log, crecimientos, {N_REZAGOS_OBJETIVO} rezagos del objetivo, "
-                     f"rezagos t-1 de covariables, tendencia y dummies {list(ANIOS_SHOCK)}"))
+                     f"rezagos t-1 de covariables, tendencia e indicadoras de choque {list(ANIOS_SHOCK)}"))
     bitacora.append(("Transformación", f"Filas iniciales sin historia suficiente eliminadas: {filas_ini - len(df)}"))
     log.info("Transformación: %d columnas, %d filas", df.shape[1], len(df))
     return df
@@ -939,15 +982,19 @@ def transformar_datos(df: pd.DataFrame, bitacora: list) -> pd.DataFrame:
 def integrar_datos(df: pd.DataFrame, meta: pd.DataFrame, bitacora: list) -> pd.DataFrame:
     """
     Integra el panel de indicadores con la tabla de metadatos de países (segunda
-    fuente de la API): nombre, región y nivel de ingreso. Además crea variables
-    indicadoras (one-hot) de región y nivel de ingreso para el modelado.
+    fuente de la API): nombre, región y nivel de ingreso (ya traducidos al
+    español). Además crea variables indicadoras (one-hot, 1/0) de región
+    (reg_<region>) y nivel de ingreso (ing_<nivel>) para el modelado.
     """
     info = meta.loc[~meta["es_agregado"], ["iso3", "pais", "region", "nivel_ingreso"]]
     df = df.merge(info, on="iso3", how="left", validate="many_to_one")
-    df["nivel_ingreso"] = df["nivel_ingreso"].replace({"Not classified": "Sin clasificar"})
-    dummies = pd.get_dummies(df[["region", "nivel_ingreso"]], prefix=["reg", "ing"], dtype=int)
-    dummies.columns = [c.lower().replace(" & ", "_").replace(" ", "_").replace("-", "_").replace(",", "")
-                       for c in dummies.columns]
+    # Nombre en español -> sufijo de columna (p. ej., "América del Norte" -> "america_norte")
+    sufijo_reg = {es: suf for es, suf in REGIONES_ES.values()}
+    sufijo_ing = {es: suf for es, suf in INGRESOS_ES.values()}
+    dummies = pd.concat([
+        pd.get_dummies(df["region"].map(sufijo_reg), prefix="reg", dtype=int),
+        pd.get_dummies(df["nivel_ingreso"].map(sufijo_ing), prefix="ing", dtype=int),
+    ], axis=1)
     df = pd.concat([df, dummies], axis=1)
     bitacora.append(("Integración", f"Unión con metadatos de países (región, ingreso); {dummies.shape[1]} variables one-hot creadas"))
     log.info("Integración: %d columnas tras unir metadatos", df.shape[1])
@@ -983,7 +1030,7 @@ def validar_dataset_final(df: pd.DataFrame, requisitos: dict) -> pd.DataFrame:
     anios_consec = df.groupby("iso3")["anio"].apply(lambda s: bool((s.diff().dropna() == 1).all())).all()
     columnas_objetivo_t = {"log_co2", OBJETIVO}
     fuga = [c for c in df.columns if ("co2" in c or "intensidad" in c)
-            and c not in columnas_objetivo_t and "lag" not in c and not c.startswith("flag_")]
+            and c not in columnas_objetivo_t and "rezago" not in c and not c.startswith("imputado_")]
     checks = [
         ("Sin valores nulos", int(df.isna().sum().sum()), int(df.isna().sum().sum()) <= requisitos["max_nulos_dataset_final"]),
         ("Sin duplicados país-año", int(df.duplicated(["iso3", "anio"]).sum()),
@@ -1014,24 +1061,26 @@ def generar_diccionario(df: pd.DataFrame) -> pd.DataFrame:
                 "region": "Región del Banco Mundial", "nivel_ingreso": "Nivel de ingreso del Banco Mundial",
                 "log_co2": "OBJETIVO transformado: ln(CO2 Mt)", "tendencia": f"Años desde {ANIO_INICIO}",
                 "crec_pib_pct": "Crecimiento anual del PIB (%)", "crec_poblacion_pct": "Crecimiento anual de la población (%)",
-                "crec_co2_lag1": "Variación anual del CO2 en t-1 (%, log)",
-                "log_co2_media3_lag1": "Media móvil de 3 años de log_co2 (t-1, t-2, t-3)",
-                "intensidad_carbono_lag1": "Intensidad de carbono en t-1 (kg CO2 / US$ de PIB)",
+                "crec_co2_rezago1": "Variación anual del CO2 en t-1 (%, log)",
+                "log_co2_media3_rezago1": "Media móvil de 3 años de log_co2 (t-1, t-2, t-3)",
+                "intensidad_carbono_rezago1": "Intensidad de carbono en t-1 (kg CO2 / US$ de PIB)",
                 "particion": "Partición temporal sugerida (entrenamiento/validacion/prueba)"}
         if col in base:
             return base[col]
-        if col.startswith("flag_imp_"):
+        if col.startswith("imputado_"):
             return f"1 si {col[9:]} fue imputado en la limpieza"
-        if col.startswith("dummy_"):
-            return f"1 si el año es {col[6:]} ({ANIOS_SHOCK.get(int(col[6:]), '')})"
+        if col.startswith("choque_"):
+            return f"1 si el año es {col[7:]} ({ANIOS_SHOCK.get(int(col[7:]), '')})"
         if col.startswith("reg_"):
-            return f"One-hot de región: {col[4:]}"
+            nombre = {suf: es for es, suf in REGIONES_ES.values()}.get(col[4:], col[4:])
+            return f"1 si el país pertenece a la región {nombre}"
         if col.startswith("ing_"):
-            return f"One-hot de nivel de ingreso: {col[4:]}"
-        if col.startswith("log_co2_lag"):
+            nombre = {suf: es for es, suf in INGRESOS_ES.values()}.get(col[4:], col[4:])
+            return f"1 si el nivel de ingreso del país es {nombre.lower()}"
+        if col.startswith("log_co2_rezago"):
             return f"log_co2 rezagado {col[-1]} año(s)"
-        if col.endswith("_lag1"):
-            raiz = col[:-5].removeprefix("log_")
+        if col.endswith("_rezago1"):
+            raiz = col[:-8].removeprefix("log_")
             return f"{'Logaritmo de ' if col.startswith('log_') else ''}{DESC_VAR.get(raiz, raiz)} en t-1"
         if col.startswith("log_"):
             return f"Logaritmo natural de {DESC_VAR.get(col[4:], col[4:])}"
@@ -1042,7 +1091,18 @@ def generar_diccionario(df: pd.DataFrame) -> pd.DataFrame:
 
 def fase3_data_preparation(panel: pd.DataFrame, meta: pd.DataFrame, calidad: pd.DataFrame,
                            requisitos: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Orquesta la fase 3, guarda el dataset preparado y el reporte de la fase."""
+    """
+    Orquesta la fase 3: selección, limpieza, outliers, transformación,
+    integración, partición temporal y validación final.
+
+    Resultado esperado:
+        - data/processed/co2_dataset_preparado.csv: 5 888 filas x 58 columnas,
+          184 países, 1993-2024, sin nulos ni duplicados
+        - data/processed/diccionario_datos.csv (descripción de cada columna)
+        - reports/03_data_preparation.md (bitácora de decisiones y controles),
+          reports/03_outliers_detectados.csv (986 saltos anómalos) y fig08-fig09
+        - 9/9 controles de calidad cumplidos
+    """
     titulo("FASE 3 - DATA PREPARATION")
     bitacora: list[tuple[str, str]] = []
 
@@ -1061,7 +1121,7 @@ def fase3_data_preparation(panel: pd.DataFrame, meta: pd.DataFrame, calidad: pd.
 
     # Orden final de columnas: claves, objetivo, covariables, banderas, partición
     claves = ["iso3", "pais", "region", "nivel_ingreso", "anio"]
-    flags = [c for c in df.columns if c.startswith("flag_")]
+    flags = [c for c in df.columns if c.startswith("imputado_")]
     resto = [c for c in df.columns if c not in claves + flags + ["particion", OBJETIVO, "log_co2"]]
     df = df[claves + [OBJETIVO, "log_co2"] + resto + flags + ["particion"]]
 
