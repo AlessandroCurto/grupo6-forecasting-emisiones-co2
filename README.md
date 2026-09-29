@@ -3,7 +3,7 @@
 **Área:** Medio Ambiente  
 **Curso:** Práctica 1, Entregable 3: Guía de código en Python  
 **Universidad Nacional de Ingeniería, FIIS · Ciclo 2026-II**  
-**Profesor:** Dr. Ing. Hilario Aradiel Castañeda  
+**Profesor:** Ing. Hilario Aradiel Castañeda  
 **Metodología:** CRISP-ML(Q) ([Studer et al., 2021](https://doi.org/10.48550/arXiv.2003.05155))
 
 
