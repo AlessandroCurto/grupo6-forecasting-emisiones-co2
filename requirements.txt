@@ -1,6 +1,7 @@
-# Librerías necesarias para ejecutar main.py (Python >= 3.10)
+# Librerías necesarias para ejecutar main.py y main.ipynb (Python >= 3.10)
 pandas>=2.2       # manipulación de datos tabulares
 numpy>=1.26       # cálculo numérico
 requests>=2.31    # descarga de datos desde la API del Banco Mundial
 matplotlib>=3.8   # gráficos
 seaborn>=0.13     # gráficos estadísticos
+notebook>=7.0     # Jupyter Notebook, solo para abrir main.ipynb

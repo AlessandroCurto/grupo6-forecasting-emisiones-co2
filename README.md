@@ -31,7 +31,8 @@ entrene modelos que pronostiquen las emisiones totales de CO2 de cada país.
 
 ```
 .
-├── main.py                        # Único archivo de código (fases 1, 2 y 3)
+├── main.py                        # Código principal (fases 1, 2 y 3)
+├── main.ipynb                     # Mismo código en formato Jupyter Notebook
 ├── README.md                      # este documento
 ├── requirements.txt               # librerías necesarias
 ├── data/
@@ -52,7 +53,7 @@ entrene modelos que pronostiquen las emisiones totales de CO2 de cada país.
     └── figures/                  
 ```
 
-Todos los archivos de `data/` y `reports/` **los genera `main.py`**. Se incluyen en el
+Todos los archivos de `data/` y `reports/` **los genera `main.py`** (o `main.ipynb`, que produce exactamente las mismas salidas). Se incluyen en el
 repositorio para poder revisar los resultados sin ejecutar el código.
 
 ---
@@ -217,6 +218,21 @@ Luego se pueden revisar:
 3. `reports/03_data_preparation.md`: bitácora de decisiones, outliers, controles QA y diccionario de datos.
 4. `reports/figures/`: las 9 figuras.
 5. `data/processed/co2_dataset_preparado.csv`: el dataset final.
+
+### Alternativa: ejecutar en Jupyter Notebook
+
+`main.ipynb` contiene el mismo código que `main.py`, organizado en celdas por fase, con una
+explicación antes de cada paso. Las tablas y las 9 figuras se ven dentro del notebook.
+Después de los pasos 1 a 3:
+
+```bash
+jupyter notebook main.ipynb
+```
+
+En Jupyter, elegir **Kernel → Restart & Run All**. El notebook debe estar en la misma carpeta
+que `main.py` para usar la caché de `data/raw/`. Las opciones `--actualizar` y `--pais` se
+cambian en la celda de parámetros (`ACTUALIZAR` y `PAIS_REF`). La última celda muestra el
+mismo resumen y avisa con un error si algún control de calidad no se cumple.
 
 ---
 
