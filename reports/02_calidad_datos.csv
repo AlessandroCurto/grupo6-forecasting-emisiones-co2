@@ -1,0 +1,13 @@
+variable,descripcion,faltantes_pct,paises_con_datos,primer_anio,ultimo_anio,fuera_de_rango,outliers_iqr
+co2_mt,Emisiones de CO2 totales excl. LULUCF (Mt CO2e),6.45,203,1990,2024,70,259
+co2_pc,Emisiones de CO2 per cápita excl. LULUCF (t CO2e/hab),6.45,203,1990,2024,70,210
+pib,PIB a precios constantes de 2015 (US$),6.46,213,1990,2024,0,47
+pib_pc,PIB per cápita a precios constantes de 2015 (US$),6.46,213,1990,2024,0,0
+poblacion,Población total (habitantes),0.0,217,1990,2024,0,0
+urbano_pct,Población urbana (% del total),0.0,217,1990,2024,0,0
+renovable_pct,Consumo de energía renovable (% del consumo final),11.18,212,1990,2022,0,0
+energia_pc,Uso de energía (kg equivalente de petróleo per cápita),31.59,179,1990,2024,1,4
+fosil_pct,Consumo de energía de combustibles fósiles (% del total),34.46,179,1990,2024,6,0
+electricidad_pct,Acceso a la electricidad (% de la población),11.17,216,1990,2024,0,760
+industria_pct,"Industria incl. construcción, valor agregado (% del PIB)",15.38,207,1990,2024,0,294
+carbon_elec_pct,Electricidad producida con carbón (% del total),19.2,209,1990,2024,0,715

@@ -1,0 +1,21 @@
+{
+  "fuente": "World Bank Open Data - API v2",
+  "url": "https://api.worldbank.org/v2",
+  "indicadores": {
+    "EN.GHG.CO2.MT.CE.AR5": "Emisiones de CO2 totales excl. LULUCF (Mt CO2e)",
+    "EN.GHG.CO2.PC.CE.AR5": "Emisiones de CO2 per cápita excl. LULUCF (t CO2e/hab)",
+    "NY.GDP.MKTP.KD": "PIB a precios constantes de 2015 (US$)",
+    "NY.GDP.PCAP.KD": "PIB per cápita a precios constantes de 2015 (US$)",
+    "SP.POP.TOTL": "Población total (habitantes)",
+    "SP.URB.TOTL.IN.ZS": "Población urbana (% del total)",
+    "EG.FEC.RNEW.ZS": "Consumo de energía renovable (% del consumo final)",
+    "EG.USE.PCAP.KG.OE": "Uso de energía (kg equivalente de petróleo per cápita)",
+    "EG.USE.COMM.FO.ZS": "Consumo de energía de combustibles fósiles (% del total)",
+    "EG.ELC.ACCS.ZS": "Acceso a la electricidad (% de la población)",
+    "NV.IND.TOTL.ZS": "Industria incl. construcción, valor agregado (% del PIB)",
+    "EG.ELC.COAL.ZS": "Electricidad producida con carbón (% del total)"
+  },
+  "periodo": "1990-2024",
+  "fecha_descarga_utc": "2026-09-29T03:46:27+00:00",
+  "licencia": "CC BY 4.0"
+}
