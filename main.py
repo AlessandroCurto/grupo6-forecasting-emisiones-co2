@@ -25,22 +25,22 @@ Europea). Licencia de los datos: CC BY 4.0.
 Flujo de ejecución (ver función main() al final del archivo):
 
     main()
-     ├── fase1_business_understanding()   -> objetivos, criterios de éxito,
-     │                                       requisitos de calidad (QA gates)
+     ├── fase1_business_understanding()      (objetivos, criterios de éxito,
+     │                                       requisitos de calidad (QA gates))
      ├── fase2_data_understanding()
-     │    ├── recolectar_datos()          -> descarga/caché de la API
-     │    ├── construir_panel()           -> tabla país-año
-     │    ├── explorar_datos()            -> estadísticas y gráficos (EDA)
-     │    ├── evaluar_calidad()           -> reporte de calidad de datos
-     │    └── verificar_factibilidad()    -> contraste con los requisitos de la fase 1
+     │    ├── recolectar_datos()             (descarga/caché de la API)
+     │    ├── construir_panel()              (tabla país-año)
+     │    ├── explorar_datos()               (estadísticas y gráficos (EDA))
+     │    ├── evaluar_calidad()              (reporte de calidad de datos)
+     │    └── verificar_factibilidad()       (contraste con los requisitos de la fase 1)
      └── fase3_data_preparation()
-          ├── seleccionar_datos()         -> países, años y variables
-          ├── limpiar_datos()             -> rangos inválidos, duplicados, imputación
-          ├── tratar_outliers()           -> detección robusta y corrección de picos
-          ├── transformar_datos()         -> logaritmos, tasas, rezagos, indicadoras de choque
-          ├── integrar_datos()            -> unión con metadatos (región, ingreso)
-          ├── particionar_temporalmente() -> etiqueta train/valid/test (sin entrenar)
-          └── validar_dataset_final()     -> controles de calidad (QA) finales
+          ├── seleccionar_datos()            (países, años y variables)
+          ├── limpiar_datos()                (rangos inválidos, duplicados, imputación)
+          ├── tratar_outliers()              (detección robusta y corrección de picos)
+          ├── transformar_datos()            (logaritmos, tasas, rezagos, indicadoras de choque)
+          ├── integrar_datos()               (unión con metadatos (región, ingreso))
+          ├── particionar_temporalmente()    (etiqueta train/valid/test (sin entrenar))
+          └── validar_dataset_final()        (controles de calidad (QA) finales)
 
 Uso:
     python main.py                 # usa los datos en caché (data/raw) o los descarga
@@ -125,13 +125,13 @@ UMBRAL_Z_ROBUSTO = 3.5             # umbral del z-score robusto (Iglewicz y Hoag
 SALTO_MINIMO = {"nivel": 0.15, "porcentaje": 5.0}  # magnitud mínima de un salto anómalo:
                                    # 15 % (variación log) en niveles, 5 puntos en porcentajes
 TOLERANCIA_CONSISTENCIA = 0.05     # 5 % de diferencia máxima entre CO2 total y per cápita x población
-MIN_CO2_PC_PLAUSIBLE = 0.01        # t CO2/hab; los países más pobres emiten ~0.04, valores menores
+MIN_CO2_PC_PLAUSIBLE = 0.01        # toneladas de CO2/hab; los países más pobres emiten ~0.04, valores menores
                                    # indican que el país no se mide por separado (p. ej., territorios)
 ANIOS_SHOCK = {2009: "Crisis financiera global", 2020: "Pandemia COVID-19"}
 N_REZAGOS_OBJETIVO = 3             # rezagos de CO2 (t-1, t-2, t-3) como variables explicativas
 
 # Traducción de las categorías del Banco Mundial (la API las entrega en inglés).
-# nombre original -> (nombre en español, sufijo de la columna indicadora)
+# nombre original 
 REGIONES_ES = {
     "East Asia & Pacific": ("Asia Oriental y Pacífico", "asia_oriental_pacifico"),
     "Europe & Central Asia": ("Europa y Asia Central", "europa_asia_central"),
